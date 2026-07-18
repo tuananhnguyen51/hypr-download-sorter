@@ -21,10 +21,11 @@ toml = "0.9"
 
 thiserror = "2.0"
 
-tokio = { version = "1.47", features = [
+tokio = { version = "1.53", features = [
+    "rt",
     "macros",
-    "rt-multi-thread",
-    "signal"
+    "time",
+    "fs"
 ] }
 
 tracing = "0.1"

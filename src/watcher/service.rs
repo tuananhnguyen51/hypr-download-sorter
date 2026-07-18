@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::sync::mpsc::{Receiver, channel};
 
 use camino::Utf8Path;
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
@@ -7,6 +6,8 @@ use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use crate::{AppError, Result};
 
 use super::{convert::convert_event, event::FileEvent};
+
+use std::sync::mpsc::{Receiver, TryRecvError, channel};
 
 /// Filesystem watching service.
 #[derive(Debug)]
@@ -51,5 +52,29 @@ impl WatchService {
 
             Err(err) => Err(AppError::message(err.to_string())),
         }
+    }
+
+    /// Receive all currently available filesystem events.
+    pub fn try_recv(&self) -> Result<Vec<FileEvent>> {
+        let mut events = Vec::new();
+
+        loop {
+            match self.receiver.try_recv() {
+                Ok(result) => {
+                    let event = result?;
+                    events.extend(convert_event(event));
+                }
+
+                Err(TryRecvError::Empty) => {
+                    break;
+                }
+
+                Err(TryRecvError::Disconnected) => {
+                    return Err(AppError::message("Watcher channel disconnected"));
+                }
+            }
+        }
+
+        Ok(events)
     }
 }

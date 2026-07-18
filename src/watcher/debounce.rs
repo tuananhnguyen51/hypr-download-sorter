@@ -1,49 +1,72 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 use camino::Utf8PathBuf;
 
 use super::event::FileEvent;
 
-/// Simple event debouncer.
-///
-/// Current implementation only removes duplicated paths.
-/// A time-based debounce will be added in a later commit.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Debouncer {
-    pending: HashSet<Utf8PathBuf>,
+    pending: HashMap<Utf8PathBuf, Instant>,
+    delay: Duration,
 }
 
 impl Debouncer {
-    /// Create a new debouncer.
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(delay: Duration) -> Self {
         Self {
-            pending: HashSet::new(),
+            pending: HashMap::new(),
+            delay,
         }
     }
 
-    /// Push events into the debouncer.
+    /// Add incoming filesystem events.
     ///
-    /// Duplicate file paths are ignored.
+    /// Every new event resets the timer.
     pub fn push(&mut self, events: Vec<FileEvent>) {
+        let now = Instant::now();
+
         for event in events {
-            self.pending.insert(event.path);
+            self.pending.insert(event.path, now);
         }
     }
 
-    /// Take all pending paths.
-    pub fn flush(&mut self) -> Vec<Utf8PathBuf> {
-        self.pending.drain().collect()
+    /// Return files that have not changed
+    /// during the debounce interval.
+    pub fn ready(&mut self) -> Vec<Utf8PathBuf> {
+        let now = Instant::now();
+
+        let ready = self
+            .pending
+            .iter()
+            .filter_map(|(path, instant)| {
+                if now.duration_since(*instant) >= self.delay {
+                    Some(path.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        for path in &ready {
+            self.pending.remove(path);
+        }
+
+        ready
     }
 
-    /// Check if there are pending events.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.pending.is_empty()
     }
 
-    /// Clear all pending events.
     pub fn clear(&mut self) {
         self.pending.clear();
+    }
+}
+
+impl Default for Debouncer {
+    fn default() -> Self {
+        Self::new(Duration::from_secs(1))
     }
 }
