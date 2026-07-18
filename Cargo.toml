@@ -1,0 +1,45 @@
+[package]
+name = "hypr-download-sorter"
+version = "0.1.0"
+edition = "2024"
+authors = ["tuananh"]
+description = "Automatic download organizer for Hyprland and Quickshell."
+license = "MIT"
+repository = ""
+readme = "README.md"
+keywords = ["hyprland", "linux", "downloads", "automation"]
+categories = ["filesystem"]
+
+[dependencies]
+camino = "1.1"
+directories = "6.0"
+
+notify = "8.2"
+
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.9"
+
+thiserror = "2.0"
+
+tokio = { version = "1.47", features = [
+    "macros",
+    "rt-multi-thread",
+    "signal"
+] }
+
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = [
+    "env-filter",
+    "fmt"
+] }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+opt-level = 3
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+debug = true
