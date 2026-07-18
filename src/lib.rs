@@ -11,6 +11,7 @@ pub mod models;
 pub mod mover;
 pub mod notifier;
 pub mod paths;
+pub mod pipeline;
 pub mod rules;
 pub mod watcher;
 

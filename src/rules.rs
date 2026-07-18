@@ -1,8 +1,10 @@
 use camino::{Utf8Path, Utf8PathBuf};
 
-use crate::models::FileCategory;
+use crate::{
+    Result,
+    models::{FileCategory, ManagedFile},
+};
 
-/// Resolves destination paths for classified files.
 #[derive(Debug, Clone)]
 pub struct RuleEngine {
     pictures: Utf8PathBuf,
@@ -32,18 +34,21 @@ impl RuleEngine {
     pub fn destination(&self, category: FileCategory) -> &Utf8Path {
         match category {
             FileCategory::Image => &self.pictures,
-
             FileCategory::Video => &self.videos,
-
             FileCategory::Audio => &self.music,
-
             FileCategory::Document => &self.documents,
-
             FileCategory::Archive => &self.archives,
-
             FileCategory::Executable => &self.applications,
-
             FileCategory::Unknown => &self.unknown,
         }
+    }
+
+    /// Resolve full destination path.
+    pub fn resolve(&self, file: &ManagedFile) -> Result<Utf8PathBuf> {
+        let directory = self.destination(file.category);
+
+        let filename = file.path.file_name().unwrap_or("unknown");
+
+        Ok(directory.join(filename))
     }
 }
