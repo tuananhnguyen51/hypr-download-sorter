@@ -30,6 +30,8 @@ tokio = { version = "1.53", features = [
 
 infer = "0.16"
 
+zbus = "5"
+
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = [
     "env-filter",

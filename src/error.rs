@@ -32,6 +32,9 @@ pub enum AppError {
     /// Generic application error.
     #[error("{0}")]
     Message(String),
+
+    #[error("D-Bus error: {0}")]
+    Zbus(#[from] zbus::Error),
 }
 
 impl AppError {
