@@ -54,6 +54,10 @@ impl Mover {
     }
 
     pub fn move_file(&self, source: &Utf8Path, destination: &Utf8PathBuf) -> Result<()> {
+        if source == destination {
+            return Ok(());
+        }
+
         Self::ensure_parent(destination)?;
 
         let destination = Self::unique_destination(destination)?;

@@ -15,6 +15,14 @@ impl Classifier {
     }
 
     pub fn classify(&self, path: Utf8PathBuf) -> Result<ManagedFile> {
+        if path.is_dir() {
+            return Ok(ManagedFile {
+                path,
+                category: FileCategory::Unknown,
+                mime: None,
+            });
+        }
+
         let mime = infer::get_from_path(&path)
             .ok()
             .flatten()

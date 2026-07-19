@@ -1,16 +1,23 @@
-use hypr_download_sorter::{Result, config::Config, watcher::WatchService};
+use camino::Utf8PathBuf;
+
+use hypr_download_sorter::{
+    AppError, Result, classifier::Classifier, config::Config, mover::Mover, notifier::Notifier,
+    pipeline::Pipeline, rules::RuleEngine, watcher::WatchEngine,
+};
 
 use tracing::{error, info};
 use tracing_subscriber::{EnvFilter, fmt};
 
-fn main() {
-    if let Err(err) = run() {
+#[tokio::main]
+async fn main() {
+    if let Err(err) = run().await {
+        println!("{:#?}", err);
         error!("{err}");
         std::process::exit(1);
     }
 }
 
-fn run() -> Result<()> {
+async fn run() -> Result<()> {
     init_logging();
 
     info!("Starting hypr-download-sorter");
@@ -21,19 +28,25 @@ fn run() -> Result<()> {
 
     info!("Watching {}", watch_dir);
 
-    let mut watcher = WatchService::new()?;
+    // Home directory
+    let home = std::env::var("HOME")
+        .map(Utf8PathBuf::from)
+        .map_err(|_| AppError::message("HOME environment variable not set"))?;
 
-    watcher.watch(watch_dir.as_path())?;
+    // Components
+    let classifier = Classifier::new();
+    let rules = RuleEngine::new(home);
+    let mover = Mover::new();
+    let notifier = Notifier::new().await?;
 
-    info!("Watcher initialized");
+    let pipeline = Pipeline::new(classifier, rules, mover, notifier);
 
-    loop {
-        let events = watcher.recv()?;
+    let mut engine = WatchEngine::new(pipeline)?;
 
-        for event in events {
-            info!("{}: {}", event.kind.as_str(), event.path);
-        }
-    }
+    engine.watch(watch_dir.as_path())?;
+    engine.run().await?;
+
+    Ok(())
 }
 
 fn init_logging() {

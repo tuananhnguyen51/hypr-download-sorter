@@ -25,7 +25,8 @@ tokio = { version = "1.53", features = [
     "rt",
     "macros",
     "time",
-    "fs"
+    "fs",
+    "rt-multi-thread",
 ] }
 
 infer = "0.16"

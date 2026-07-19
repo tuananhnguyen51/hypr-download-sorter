@@ -44,16 +44,24 @@ impl WatchService {
 
     /// Receive filesystem events.
     pub fn recv(&self) -> Result<Vec<FileEvent>> {
-        match self.receiver.recv() {
-            Ok(result) => {
-                let event = result?;
-                Ok(convert_event(event))
-            }
+        let mut events = Vec::new();
 
-            Err(err) => Err(AppError::message(err.to_string())),
+        // Block until first event
+        let first = self
+            .receiver
+            .recv()
+            .map_err(|err| AppError::message(err.to_string()))??;
+
+        events.extend(convert_event(first));
+
+        // Taking events in queue
+        while let Ok(result) = self.receiver.try_recv() {
+            let event = result?;
+            events.extend(convert_event(event));
         }
-    }
 
+        Ok(events)
+    }
     /// Receive all currently available filesystem events.
     pub fn try_recv(&self) -> Result<Option<Vec<FileEvent>>> {
         match self.receiver.try_recv() {

@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use zbus::Connection;
 
+use zbus::zvariant::Value;
+
 use crate::Result;
 
 #[derive(Debug, Clone)]
@@ -25,8 +27,10 @@ impl Notifier {
         )
         .await?;
 
-        proxy
-            .call_method(
+        let hints: HashMap<&str, Value<'_>> = HashMap::new();
+
+        let _: u32 = proxy
+            .call(
                 "Notify",
                 &(
                     "hypr-download-sorter",
@@ -35,7 +39,7 @@ impl Notifier {
                     summary,
                     body,
                     Vec::<String>::new(),
-                    HashMap::<String, String>::new(),
+                    hints,
                     5000i32,
                 ),
             )

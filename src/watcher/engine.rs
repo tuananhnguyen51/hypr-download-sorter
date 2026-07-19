@@ -30,22 +30,19 @@ impl WatchEngine {
 
     pub async fn run(&mut self) -> Result<()> {
         loop {
-            // Nhận batch event từ notify
-            let events = self.watcher.recv()?;
+            if let Some(events) = self.watcher.try_recv()? {
+                self.debounce.push(events);
+            }
 
-            // Đưa toàn bộ event vào debounce
-            self.debounce.push(events);
-
-            // Lấy các file đã hết thời gian debounce
-            let ready = self.debounce.ready();
-
-            for path in ready {
+            for path in self.debounce.ready() {
                 if !self.stability.wait_until_stable(&path).await? {
                     continue;
                 }
 
                 self.pipeline.process(path).await?;
             }
+
+            tokio::time::sleep(Duration::from_millis(50)).await;
         }
     }
 }

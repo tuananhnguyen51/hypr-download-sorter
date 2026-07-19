@@ -18,6 +18,10 @@ pub fn convert_event(event: Event) -> Vec<FileEvent> {
         .paths
         .into_iter()
         .filter_map(|path| {
+            if path.is_dir() {
+                return None;
+            }
+
             Utf8PathBuf::from_path_buf(path)
                 .ok()
                 .map(|path| FileEvent::new(path, kind))

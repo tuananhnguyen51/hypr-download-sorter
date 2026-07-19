@@ -1,3 +1,4 @@
+use std::io::ErrorKind;
 use std::time::Duration;
 
 use camino::Utf8Path;
@@ -21,7 +22,16 @@ impl StabilityChecker {
         let mut previous_size = None;
 
         for _ in 0..self.checks {
-            let metadata = tokio::fs::metadata(path).await?;
+            let metadata = match tokio::fs::metadata(path).await {
+                Ok(metadata) => metadata,
+
+                Err(err) if err.kind() == ErrorKind::NotFound => {
+                    // File has been deleted
+                    return Ok(false);
+                }
+
+                Err(err) => return Err(err.into()),
+            };
 
             let size = metadata.len();
 
