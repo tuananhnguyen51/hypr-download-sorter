@@ -30,16 +30,32 @@ impl WatchEngine {
 
     pub async fn run(&mut self) -> Result<()> {
         loop {
+            
             if let Some(events) = self.watcher.try_recv()? {
+                tracing::debug!("received {} events", events.len());
                 self.debounce.push(events);
             }
 
-            for path in self.debounce.ready() {
+            let ready = self.debounce.ready();
+
+            tracing::debug!("ready {} files", ready.len());
+
+            for path in ready {
+                tracing::debug!("processing = {}", path);
+
                 if !self.stability.wait_until_stable(&path).await? {
+                    tracing::debug!("not stable yet: {}", path);
                     continue;
                 }
 
-                self.pipeline.process(path).await?;
+                tracing::debug!("stable: {}", path);
+
+                match self.pipeline.process(path).await {
+                    Ok(_) => tracing::info!("pipeline ok"),
+                    Err(err) => {
+                        tracing::error!("pipeline failed: {:#?}", err);
+                    }
+                }
             }
 
             tokio::time::sleep(Duration::from_millis(50)).await;

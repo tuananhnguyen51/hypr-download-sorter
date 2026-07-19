@@ -1,4 +1,3 @@
-use std::io::ErrorKind;
 use std::time::Duration;
 
 use camino::Utf8Path;
@@ -21,23 +20,23 @@ impl StabilityChecker {
     pub async fn wait_until_stable(&self, path: &Utf8Path) -> Result<bool> {
         let mut previous_size = None;
 
-        for _ in 0..self.checks {
-            let metadata = match tokio::fs::metadata(path).await {
-                Ok(metadata) => metadata,
-
-                Err(err) if err.kind() == ErrorKind::NotFound => {
-                    // File has been deleted
-                    return Ok(false);
-                }
-
-                Err(err) => return Err(err.into()),
-            };
+        for i in 0..self.checks {
+            let metadata = tokio::fs::metadata(path).await?;
 
             let size = metadata.len();
+
+            tracing::info!(
+                "stability check {}/{}: {} ({} bytes)",
+                i + 1,
+                self.checks,
+                path,
+                size
+            );
 
             if let Some(old_size) = previous_size
                 && old_size == size
             {
+                tracing::info!("file stable");
                 return Ok(true);
             }
 

@@ -26,17 +26,25 @@ impl Pipeline {
     }
 
     pub async fn process(&self, path: Utf8PathBuf) -> Result<()> {
+        tracing::debug!("Pipeline: {}", path);
+
+        tracing::info!("ENTER PIPELINE");
+
+        if !path.exists() {
+            tracing::debug!("Skipping vanished file: {}", path);
+            return Ok(());
+        }
+
         let file = self.classifier.classify(path)?;
+        tracing::info!("mime={:?}, category={:?}", file.mime, file.category);
 
         let destination = self.rules.resolve(&file)?;
+        tracing::info!("Moving {} -> {}", file.path, destination);
 
         self.mover.move_file(&file.path, &destination)?;
 
         self.notifier
-            .notify(
-                "File sorted",
-                &format!("Moved to {}", destination),
-            )
+            .notify("File sorted", &format!("Moved to {}", destination))
             .await?;
 
         Ok(())

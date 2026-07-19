@@ -3,7 +3,7 @@ use std::path::Path;
 use camino::Utf8Path;
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::{AppError, Result};
+use crate::Result;
 
 use super::{convert::convert_event, event::FileEvent};
 
@@ -42,37 +42,19 @@ impl WatchService {
         Ok(())
     }
 
-    /// Receive filesystem events.
-    pub fn recv(&self) -> Result<Vec<FileEvent>> {
+    /// Receive all currently available filesystem events.
+    pub fn try_recv(&self) -> Result<Option<Vec<FileEvent>>> {
         let mut events = Vec::new();
 
-        // Block until first event
-        let first = self
-            .receiver
-            .recv()
-            .map_err(|err| AppError::message(err.to_string()))??;
-
-        events.extend(convert_event(first));
-
-        // Taking events in queue
         while let Ok(result) = self.receiver.try_recv() {
             let event = result?;
             events.extend(convert_event(event));
         }
 
-        Ok(events)
-    }
-    /// Receive all currently available filesystem events.
-    pub fn try_recv(&self) -> Result<Option<Vec<FileEvent>>> {
-        match self.receiver.try_recv() {
-            Ok(result) => {
-                let event = result?;
-                Ok(Some(convert_event(event)))
-            }
-
-            Err(std::sync::mpsc::TryRecvError::Empty) => Ok(None),
-
-            Err(err) => Err(AppError::message(err.to_string())),
+        if events.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(events))
         }
     }
 }

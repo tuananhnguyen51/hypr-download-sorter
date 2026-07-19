@@ -1,4 +1,4 @@
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 
 use crate::{
     Result,
@@ -23,70 +23,100 @@ impl Classifier {
             });
         }
 
-        let mime = infer::get_from_path(&path)
-            .ok()
-            .flatten()
-            .map(|kind| kind.mime_type().to_string());
+        let mime = infer::get_from_path(&path)?.map(|kind| kind.mime_type().to_owned());
 
-        let category = mime
-            .as_deref()
-            .map(classify_mime)
-            .unwrap_or_else(|| classify_extension(&path));
+        let extension_category = classify_extension(&path);
 
-        Ok(ManagedFile {
+        let category = if extension_category != FileCategory::Unknown {
+            extension_category
+        } else {
+            mime.as_deref()
+                .map(classify_mime)
+                .unwrap_or(FileCategory::Unknown)
+        };
+
+        let file = ManagedFile {
             path,
             category,
             mime,
-        })
+        };
+
+        tracing::debug!("mime={:?}, category={:?}", file.mime, file.category);
+
+        Ok(file)
     }
 }
 
-fn classify_mime(mime: &str) -> FileCategory {
-    if mime.starts_with("image/") {
-        return FileCategory::Image;
-    }
+fn classify_extension(path: &Utf8Path) -> FileCategory {
+    let Some(extension) = path.extension() else {
+        return FileCategory::Unknown;
+    };
 
-    if mime.starts_with("video/") {
-        return FileCategory::Video;
-    }
+    match extension.to_ascii_lowercase().as_str() {
+        // Images
+        "jpg" | "jpeg" | "png" | "gif"
+        | "bmp" | "webp" | "svg"
+        | "tif" | "tiff" | "ico"
+            => FileCategory::Image,
 
-    if mime.starts_with("audio/") {
-        return FileCategory::Audio;
-    }
+        // Videos
+        "mp4" | "mkv" | "avi" | "mov"
+        | "webm" | "flv" | "wmv"
+        | "m4v" | "mpeg" | "mpg"
+            => FileCategory::Video,
 
-    match mime {
-        "application/pdf"
-        | "text/plain"
-        | "application/msword"
-        | "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => {
-            FileCategory::Document
-        }
+        // Audio
+        "mp3" | "wav" | "flac" | "aac"
+        | "ogg" | "opus" | "m4a"
+        | "wma"
+            => FileCategory::Audio,
 
-        "application/zip" | "application/x-rar" | "application/x-7z-compressed" => {
-            FileCategory::Archive
-        }
+        // Documents
+        "pdf" | "txt" | "md"
+        | "doc" | "docx"
+        | "xls" | "xlsx"
+        | "ppt" | "pptx"
+        | "odt" | "ods" | "odp"
+            => FileCategory::Document,
 
-        "application/x-executable" => FileCategory::Executable,
+        // Archives
+        "zip" | "rar" | "7z"
+        | "tar" | "gz"
+        | "xz" | "bz2"
+            => FileCategory::Archive,
+
+        // Executables
+        "appimage" | "deb"
+        | "rpm" | "apk"
+        | "run" | "bin"
+        | "exe" | "msi"
+            => FileCategory::Executable,
 
         _ => FileCategory::Unknown,
     }
 }
 
-fn classify_extension(path: &camino::Utf8Path) -> FileCategory {
-    let ext = path.extension().unwrap_or_default().to_ascii_lowercase();
+fn classify_mime(mime: &str) -> FileCategory {
+    match mime {
+        m if m.starts_with("image/") => FileCategory::Image,
 
-    match ext.as_str() {
-        "png" | "jpg" | "jpeg" | "webp" | "gif" | "svg" => FileCategory::Image,
+        m if m.starts_with("video/") => FileCategory::Video,
 
-        "mp4" | "mkv" | "webm" | "avi" => FileCategory::Video,
+        m if m.starts_with("audio/") => FileCategory::Audio,
 
-        "mp3" | "flac" | "wav" => FileCategory::Audio,
+        "application/pdf" => FileCategory::Document,
 
-        "pdf" | "txt" | "doc" | "docx" | "odt" => FileCategory::Document,
+        m if m.starts_with("text/") => FileCategory::Document,
 
-        "zip" | "rar" | "7z" | "tar" => FileCategory::Archive,
+        "application/zip"
+        | "application/x-7z-compressed"
+        | "application/x-rar-compressed"
+        | "application/gzip"
+        | "application/x-tar" => FileCategory::Archive,
 
-        "appimage" | "bin" => FileCategory::Executable,
+        "application/x-executable" | "application/x-sharedlib" | "application/x-pie-executable" => {
+            FileCategory::Executable
+        }
 
         _ => FileCategory::Unknown,
     }

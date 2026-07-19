@@ -1,7 +1,7 @@
 use camino::Utf8PathBuf;
 use notify::{
     Event, EventKind,
-    event::{CreateKind, ModifyKind, RemoveKind, RenameMode},
+    event::{CreateKind, ModifyKind},
 };
 
 use super::event::{FileEvent, FileEventKind};
@@ -12,7 +12,9 @@ use super::event::{FileEvent, FileEventKind};
 /// so this function returns a vector of internal events.
 #[must_use]
 pub fn convert_event(event: Event) -> Vec<FileEvent> {
-    let kind = convert_kind(&event.kind);
+    let Some(kind) = convert_kind(&event.kind) else {
+        return Vec::new();
+    };
 
     event
         .paths
@@ -28,27 +30,14 @@ pub fn convert_event(event: Event) -> Vec<FileEvent> {
         })
         .collect()
 }
-
 /// Convert `notify::EventKind` into our simplified event type.
 #[must_use]
-fn convert_kind(kind: &EventKind) -> FileEventKind {
+fn convert_kind(kind: &EventKind) -> Option<FileEventKind> {
     match kind {
-        EventKind::Create(CreateKind::Any)
-        | EventKind::Create(CreateKind::File)
-        | EventKind::Create(CreateKind::Folder) => FileEventKind::Created,
+        EventKind::Create(CreateKind::File) => Some(FileEventKind::Created),
 
-        EventKind::Modify(ModifyKind::Any)
-        | EventKind::Modify(ModifyKind::Data(_))
-        | EventKind::Modify(ModifyKind::Metadata(_)) => FileEventKind::Modified,
+        EventKind::Modify(ModifyKind::Data(_)) => Some(FileEventKind::Modified),
 
-        EventKind::Modify(ModifyKind::Name(
-            RenameMode::Any | RenameMode::Both | RenameMode::From | RenameMode::To,
-        )) => FileEventKind::Renamed,
-
-        EventKind::Remove(RemoveKind::Any)
-        | EventKind::Remove(RemoveKind::File)
-        | EventKind::Remove(RemoveKind::Folder) => FileEventKind::Removed,
-
-        _ => FileEventKind::Other,
+        _ => None,
     }
 }
