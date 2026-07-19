@@ -49,8 +49,6 @@ impl RuleEngine {
 
         let filename = file.path.file_name().unwrap_or("unknown");
 
-        println!("{:?}", file.category);
-
         Ok(directory.join(filename))
     }
 }

@@ -30,17 +30,14 @@ impl Pipeline {
 
         let destination = self.rules.resolve(&file)?;
 
-        tracing::info!("Moving {} -> {}", file.path, destination);
-
-        tracing::info!("before move");
         self.mover.move_file(&file.path, &destination)?;
-        tracing::info!("after move");
 
-        tracing::info!("before notify");
         self.notifier
-            .notify("File sorted", &format!("Moved to {}", destination))
+            .notify(
+                "File sorted",
+                &format!("Moved to {}", destination),
+            )
             .await?;
-        tracing::info!("after notify");
 
         Ok(())
     }
