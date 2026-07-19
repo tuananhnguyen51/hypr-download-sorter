@@ -54,43 +54,29 @@ fn classify_extension(path: &Utf8Path) -> FileCategory {
 
     match extension.to_ascii_lowercase().as_str() {
         // Images
-        "jpg" | "jpeg" | "png" | "gif"
-        | "bmp" | "webp" | "svg"
-        | "tif" | "tiff" | "ico"
-            => FileCategory::Image,
+        "jpg" | "jpeg" | "png" | "gif" | "bmp" | "webp" | "svg" | "tif" | "tiff" | "ico" => {
+            FileCategory::Image
+        }
 
         // Videos
-        "mp4" | "mkv" | "avi" | "mov"
-        | "webm" | "flv" | "wmv"
-        | "m4v" | "mpeg" | "mpg"
-            => FileCategory::Video,
+        "mp4" | "mkv" | "avi" | "mov" | "webm" | "flv" | "wmv" | "m4v" | "mpeg" | "mpg" => {
+            FileCategory::Video
+        }
 
         // Audio
-        "mp3" | "wav" | "flac" | "aac"
-        | "ogg" | "opus" | "m4a"
-        | "wma"
-            => FileCategory::Audio,
+        "mp3" | "wav" | "flac" | "aac" | "ogg" | "opus" | "m4a" | "wma" => FileCategory::Audio,
 
         // Documents
-        "pdf" | "txt" | "md"
-        | "doc" | "docx"
-        | "xls" | "xlsx"
-        | "ppt" | "pptx"
-        | "odt" | "ods" | "odp"
-            => FileCategory::Document,
+        "pdf" | "txt" | "md" | "doc" | "docx" | "xls" | "xlsx" | "ppt" | "pptx" | "odt" | "ods"
+        | "odp" => FileCategory::Document,
 
         // Archives
-        "zip" | "rar" | "7z"
-        | "tar" | "gz"
-        | "xz" | "bz2"
-            => FileCategory::Archive,
+        "zip" | "rar" | "7z" | "tar" | "gz" | "xz" | "bz2" => FileCategory::Archive,
 
         // Executables
-        "appimage" | "deb"
-        | "rpm" | "apk"
-        | "run" | "bin"
-        | "exe" | "msi"
-            => FileCategory::Executable,
+        "appimage" | "deb" | "rpm" | "apk" | "run" | "bin" | "exe" | "msi" => {
+            FileCategory::Executable
+        }
 
         _ => FileCategory::Unknown,
     }

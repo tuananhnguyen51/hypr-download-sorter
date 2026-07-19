@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use camino::Utf8Path;
 
-use crate::{Result, pipeline::Pipeline};
+use crate::{Result, filter, pipeline::Pipeline};
 
 use super::{debounce::Debouncer, service::WatchService, stability::StabilityChecker};
 
@@ -30,7 +30,6 @@ impl WatchEngine {
 
     pub async fn run(&mut self) -> Result<()> {
         loop {
-            
             if let Some(events) = self.watcher.try_recv()? {
                 tracing::debug!("received {} events", events.len());
                 self.debounce.push(events);
@@ -41,6 +40,10 @@ impl WatchEngine {
             tracing::debug!("ready {} files", ready.len());
 
             for path in ready {
+                if !filter::should_process(&path) {
+                    tracing::debug!("ignored {}", path);
+                    continue;
+                }
                 tracing::debug!("processing = {}", path);
 
                 if !self.stability.wait_until_stable(&path).await? {

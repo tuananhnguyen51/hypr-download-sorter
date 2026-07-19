@@ -1,1 +1,0 @@
-&(&str, u32, &str, &str, &str, std::vec::Vec<std::string::String>, std::collections::HashMap<std::string::String, std::string::String>, i32)

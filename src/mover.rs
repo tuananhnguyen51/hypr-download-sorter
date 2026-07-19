@@ -5,6 +5,8 @@ use crate::{AppError, Result};
 #[derive(Debug, Clone)]
 pub struct Mover;
 
+const MAX_DUPLICATES: usize = 100_000;
+
 impl Default for Mover {
     fn default() -> Self {
         Self::new()
@@ -31,39 +33,50 @@ impl Mover {
         }
 
         let stem = path.file_stem().unwrap_or("file");
-        let ext = path.extension();
+        let extension = path.extension();
 
         let Some(parent) = path.parent() else {
-            return Ok(path.to_path_buf());
+            return Err(AppError::message("destination has no parent directory"));
         };
 
-        for i in 1..=100_000 {
-            let name = match ext {
-                Some(ext) => format!("{stem} ({i}).{ext}"),
-                None => format!("{stem} ({i})"),
+        for index in 1..=MAX_DUPLICATES {
+            let filename = match extension {
+                Some(ext) => format!("{stem} ({index}).{ext}"),
+                None => format!("{stem} ({index})"),
             };
 
-            let candidate = parent.join(name);
+            let candidate = parent.join(filename);
 
             if !candidate.exists() {
                 return Ok(candidate);
             }
         }
 
-        Err(AppError::message("could not find a unique filename"))
+        Err(AppError::message(
+            "could not find an available destination filename",
+        ))
     }
 
-    pub fn move_file(&self, source: &Utf8Path, destination: &Utf8PathBuf) -> Result<()> {
-        if source == destination {
-            return Ok(());
-        }
-
-        Self::ensure_parent(destination)?;
-
+    pub fn move_file(&self, source: &Utf8Path, destination: &Utf8Path) -> Result<()> {
         let destination = Self::unique_destination(destination)?;
 
-        std::fs::rename(source, &destination)?;
+        Self::ensure_parent(&destination)?;
 
-        Ok(())
+        tracing::info!("Moving {} -> {}", source, destination);
+
+        match std::fs::rename(source, &destination) {
+            Ok(()) => Ok(()),
+
+            Err(err) if err.raw_os_error() == Some(libc::EXDEV) => {
+                tracing::debug!("Cross-device move detected, falling back to copy");
+
+                std::fs::copy(source, &destination)?;
+                std::fs::remove_file(source)?;
+
+                Ok(())
+            }
+
+            Err(err) => Err(err.into()),
+        }
     }
 }

@@ -28,7 +28,7 @@ impl Pipeline {
     pub async fn process(&self, path: Utf8PathBuf) -> Result<()> {
         tracing::debug!("Pipeline: {}", path);
 
-        tracing::info!("ENTER PIPELINE");
+        tracing::debug!("ENTER PIPELINE");
 
         if !path.exists() {
             tracing::debug!("Skipping vanished file: {}", path);
@@ -36,10 +36,10 @@ impl Pipeline {
         }
 
         let file = self.classifier.classify(path)?;
-        tracing::info!("mime={:?}, category={:?}", file.mime, file.category);
+        tracing::debug!("mime={:?}, category={:?}", file.mime, file.category);
 
         let destination = self.rules.resolve(&file)?;
-        tracing::info!("Moving {} -> {}", file.path, destination);
+        tracing::debug!("Moving {} -> {}", file.path, destination);
 
         self.mover.move_file(&file.path, &destination)?;
 

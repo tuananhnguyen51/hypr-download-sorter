@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 use crate::{
     error::{AppError, Result},
+    models::FileCategory,
     paths::{Paths, ensure_directory},
 };
 
@@ -14,18 +15,27 @@ use crate::{
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct Config {
-    /// Directory to watch.
-    pub watch_dir: String,
+    pub watch_dir: Utf8PathBuf,
 
-    /// Enable desktop notifications.
-    pub notifications: bool,
+    pub documents: Utf8PathBuf,
+    pub images: Utf8PathBuf,
+    pub videos: Utf8PathBuf,
+    pub music: Utf8PathBuf,
+    pub archives: Utf8PathBuf,
+    pub executables: Utf8PathBuf,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            watch_dir: "~/Downloads".to_string(),
-            notifications: true,
+            watch_dir: "~/Downloads".into(),
+
+            documents: "~/Documents/Downloads".into(),
+            images: "~/Pictures/Downloads".into(),
+            videos: "~/Videos/Downloads".into(),
+            music: "~/Music/Downloads".into(),
+            archives: "~/Archives/Downloads".into(),
+            executables: "~/Applications/Downloads".into(),
         }
     }
 }
@@ -37,6 +47,20 @@ impl Config {
     ///
     /// 1. ~/.config/hypr-download-sorter/config.toml
     /// 2. config/default.toml (development)
+    pub fn destination(&self, category: FileCategory) -> Result<Utf8PathBuf> {
+        let paths = Paths::new()?;
+
+        Ok(match category {
+            FileCategory::Image => paths.expand(&self.images),
+            FileCategory::Video => paths.expand(&self.videos),
+            FileCategory::Audio => paths.expand(&self.music),
+            FileCategory::Document => paths.expand(&self.documents),
+            FileCategory::Archive => paths.expand(&self.archives),
+            FileCategory::Executable => paths.expand(&self.executables),
+            FileCategory::Unknown => paths.expand(&self.watch_dir),
+        })
+    }
+
     pub fn load() -> Result<Self> {
         let paths = Paths::new()?;
 
@@ -69,8 +93,16 @@ impl Config {
     }
 
     fn validate(&self) -> Result<()> {
-        if self.watch_dir.trim().is_empty() {
-            return Err(AppError::config("watch_dir cannot be empty."));
+        let paths = Paths::new()?;
+
+        let watch_dir = paths.expand(&self.watch_dir);
+
+        if !watch_dir.exists() {
+            return Err(AppError::config("watch_dir does not exist."));
+        }
+
+        if !watch_dir.is_dir() {
+            return Err(AppError::config("watch_dir is not a directory."));
         }
 
         Ok(())

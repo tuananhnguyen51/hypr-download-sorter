@@ -1,0 +1,14 @@
+/home/tuananh/code/project/hypr-download-sorter/target/debug/deps/thiserror-b297c948674aadf4.d: /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/lib.rs /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/aserror.rs /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/display.rs /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/var.rs /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/private.rs /home/tuananh/code/project/hypr-download-sorter/target/debug/build/thiserror-f169fba2ee55770a/out/private.rs
+
+/home/tuananh/code/project/hypr-download-sorter/target/debug/deps/libthiserror-b297c948674aadf4.rlib: /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/lib.rs /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/aserror.rs /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/display.rs /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/var.rs /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/private.rs /home/tuananh/code/project/hypr-download-sorter/target/debug/build/thiserror-f169fba2ee55770a/out/private.rs
+
+/home/tuananh/code/project/hypr-download-sorter/target/debug/deps/libthiserror-b297c948674aadf4.rmeta: /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/lib.rs /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/aserror.rs /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/display.rs /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/var.rs /home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/private.rs /home/tuananh/code/project/hypr-download-sorter/target/debug/build/thiserror-f169fba2ee55770a/out/private.rs
+
+/home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/lib.rs:
+/home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/aserror.rs:
+/home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/display.rs:
+/home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/var.rs:
+/home/tuananh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.19/src/private.rs:
+/home/tuananh/code/project/hypr-download-sorter/target/debug/build/thiserror-f169fba2ee55770a/out/private.rs:
+
+# env-dep:OUT_DIR=/home/tuananh/code/project/hypr-download-sorter/target/debug/build/thiserror-f169fba2ee55770a/out

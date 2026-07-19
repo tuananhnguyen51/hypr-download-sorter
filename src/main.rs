@@ -1,8 +1,6 @@
-use camino::Utf8PathBuf;
-
 use hypr_download_sorter::{
-    AppError, Result, classifier::Classifier, config::Config, mover::Mover, notifier::Notifier,
-    pipeline::Pipeline, rules::RuleEngine, watcher::WatchEngine,
+    Result, classifier::Classifier, config::Config, mover::Mover, notifier::Notifier,
+    pipeline::Pipeline, rules::RuleEngine, startup::StartupScanner, watcher::WatchEngine,
 };
 
 use tracing::{error, info};
@@ -28,18 +26,16 @@ async fn run() -> Result<()> {
 
     info!("Watching {}", watch_dir);
 
-    // Home directory
-    let home = std::env::var("HOME")
-        .map(Utf8PathBuf::from)
-        .map_err(|_| AppError::message("HOME environment variable not set"))?;
-
-    // Components
     let classifier = Classifier::new();
-    let rules = RuleEngine::new(home);
+    let rules = RuleEngine::new(config.clone());
     let mover = Mover::new();
     let notifier = Notifier::new().await?;
 
     let pipeline = Pipeline::new(classifier, rules, mover, notifier);
+
+    let scanner = StartupScanner::new();
+
+    scanner.scan(watch_dir.as_path(), &pipeline).await?;
 
     let mut engine = WatchEngine::new(pipeline)?;
 
