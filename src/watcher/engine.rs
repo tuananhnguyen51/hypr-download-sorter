@@ -1,44 +1,51 @@
-use camino::{Utf8Path, Utf8PathBuf};
+use std::time::Duration;
 
-use crate::Result;
+use camino::Utf8Path;
 
-use super::{Debouncer, StabilityChecker, WatchService};
+use crate::{Result, pipeline::Pipeline};
+
+use super::{debounce::Debouncer, service::WatchService, stability::StabilityChecker};
 
 #[derive(Debug)]
-pub struct WatcherEngine {
-    service: WatchService,
-    debouncer: Debouncer,
+pub struct WatchEngine {
+    watcher: WatchService,
+    debounce: Debouncer,
     stability: StabilityChecker,
+    pipeline: Pipeline,
 }
 
-impl WatcherEngine {
-    pub fn new() -> Result<Self> {
+impl WatchEngine {
+    pub fn new(pipeline: Pipeline) -> Result<Self> {
         Ok(Self {
-            service: WatchService::new()?,
-            debouncer: Debouncer::default(),
-            stability: StabilityChecker::default(),
+            watcher: WatchService::new()?,
+            debounce: Debouncer::new(Duration::from_millis(500)),
+            stability: StabilityChecker::new(Duration::from_millis(300), 3),
+            pipeline,
         })
     }
 
     pub fn watch(&mut self, path: &Utf8Path) -> Result<()> {
-        self.service.watch(path)
+        self.watcher.watch(path)
     }
 
-    pub async fn poll(&mut self) -> Result<Vec<Utf8PathBuf>> {
-        let events = self.service.try_recv()?;
+    pub async fn run(&mut self) -> Result<()> {
+        loop {
+            // Nhận batch event từ notify
+            let events = self.watcher.recv()?;
 
-        if !events.is_empty() {
-            self.debouncer.push(events);
-        }
+            // Đưa toàn bộ event vào debounce
+            self.debounce.push(events);
 
-        let mut ready = Vec::new();
+            // Lấy các file đã hết thời gian debounce
+            let ready = self.debounce.ready();
 
-        for path in self.debouncer.ready() {
-            if self.stability.wait_until_stable(&path).await? {
-                ready.push(path);
+            for path in ready {
+                if !self.stability.wait_until_stable(&path).await? {
+                    continue;
+                }
+
+                self.pipeline.process(path).await?;
             }
         }
-
-        Ok(ready)
     }
 }

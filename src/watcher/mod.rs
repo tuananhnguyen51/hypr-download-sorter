@@ -12,7 +12,7 @@ pub mod stability;
 mod engine;
 
 pub use debounce::Debouncer;
-pub use engine::WatcherEngine;
+pub use engine::WatchEngine;
 pub use event::FileEvent;
 pub use service::WatchService;
 pub use stability::StabilityChecker;

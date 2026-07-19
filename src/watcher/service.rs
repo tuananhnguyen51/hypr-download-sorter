@@ -7,7 +7,7 @@ use crate::{AppError, Result};
 
 use super::{convert::convert_event, event::FileEvent};
 
-use std::sync::mpsc::{Receiver, TryRecvError, channel};
+use std::sync::mpsc::{Receiver, channel};
 
 /// Filesystem watching service.
 #[derive(Debug)]
@@ -55,26 +55,16 @@ impl WatchService {
     }
 
     /// Receive all currently available filesystem events.
-    pub fn try_recv(&self) -> Result<Vec<FileEvent>> {
-        let mut events = Vec::new();
-
-        loop {
-            match self.receiver.try_recv() {
-                Ok(result) => {
-                    let event = result?;
-                    events.extend(convert_event(event));
-                }
-
-                Err(TryRecvError::Empty) => {
-                    break;
-                }
-
-                Err(TryRecvError::Disconnected) => {
-                    return Err(AppError::message("Watcher channel disconnected"));
-                }
+    pub fn try_recv(&self) -> Result<Option<Vec<FileEvent>>> {
+        match self.receiver.try_recv() {
+            Ok(result) => {
+                let event = result?;
+                Ok(Some(convert_event(event)))
             }
-        }
 
-        Ok(events)
+            Err(std::sync::mpsc::TryRecvError::Empty) => Ok(None),
+
+            Err(err) => Err(AppError::message(err.to_string())),
+        }
     }
 }
