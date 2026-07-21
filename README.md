@@ -1,90 +1,113 @@
-<p align="center">
-    <img src="assets/logo.svg" width="140" alt="hypr-download-sorter">
-</p>
+# hypr-download-sorter
 
-<h1 align="center">hypr-download-sorter</h1>
+> A lightweight download management daemon for Linux.
+>
+> Automatically organize your Downloads folder in the background.
 
-<p align="center">
-    <strong>A native download management daemon for Hyprland & Wayland.</strong>
-</p>
-
-<p align="center">
-Automatically organize your Downloads folder without thinking about it.
-</p>
-
-<p align="center">
-
-![Rust](https://img.shields.io/badge/Rust-1.89%2B-orange?logo=rust)
 ![Platform](https://img.shields.io/badge/Linux-Wayland-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Status](https://img.shields.io/badge/status-v1.0.0-success)
-
-</p>
+![Rust](https://img.shields.io/badge/Rust-stable-orange)
+![License](https://img.shields.io/github/license/tuananhnguyen51/hypr-download-sorter)
 
 ---
 
-# Demo
+## ✨ Features
 
-> *(GIF will be added in the first release.)*
-
-<p align="center">
-<img src="assets/demo.gif" width="900">
-</p>
-
----
-
-# Overview
-
-**hypr-download-sorter** is a lightweight daemon that continuously watches your Downloads directory and automatically organizes newly downloaded files into predefined folders.
-
-Unlike simple shell scripts, it is designed to run reliably in the background for long periods while ensuring files are **never moved before downloads finish**.
-
-Built specifically for Linux desktop users who want a clean Downloads folder without manual work.
-
----
-
-# Features
-
-- 📂 Automatic file organization
-- 🦀 Native Rust implementation
+- 📂 Automatically organize downloaded files
+- 🦀 Written in pure Rust
 - ⚡ Lightweight background daemon
-- 🛡 Stability checker prevents incomplete file moves
-- ⏳ Smart debounce to avoid duplicate events
-- 📑 MIME + extension classification
-- 🔔 Desktop notifications
+- ⏳ Smart debounce prevents duplicate events
+- 🛡 Waits until downloads are completely finished
+- 📑 MIME + extension based classification
+- 🔔 Native desktop notifications
 - ⚙️ TOML configuration
 - 📝 Structured logging (`tracing`)
-- 🧩 Modular architecture
-- 🚀 Low memory usage
-- 💻 Designed for Wayland & Hyprland
+- 🔧 systemd user service
+- 💻 Built for Wayland desktops
 
 ---
 
-# Why hypr-download-sorter?
+## 🎥 Demo
 
-Many users solve download organization with a short shell script.
+Coming soon.
 
-While that works for basic cases, it usually lacks features required for a long-running desktop daemon.
-
-| Shell Script | hypr-download-sorter |
-|--------------|----------------------|
-| Basic automation | Native daemon |
-| Immediate file moving | Waits until downloads are stable |
-| No debounce | Smart debounce |
-| Minimal logging | Structured logging |
-| Difficult to extend | Modular architecture |
-| Usually no notifications | Desktop notifications |
-| Limited error handling | Robust error handling |
-
-This project focuses on **real-world desktop usage** instead of synthetic benchmarks.
-
-The goal is simple:
-
-> Download a file and never think about organizing it again.
+A short GIF demonstrating automatic file organization will be added in a future release.
 
 ---
 
-# Architecture
+## 🚀 Installation
+
+### Requirements
+
+- Linux
+- Rust (stable)
+
+Install Rust if needed:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+Clone and install:
+
+```bash
+git clone https://github.com/<USERNAME>/hypr-download-sorter.git \
+&& cd hypr-download-sorter \
+&& bash scripts/install.sh
+```
+
+The installer automatically:
+
+- builds the release binary
+- installs the default configuration
+- installs the systemd user service
+
+Start the daemon:
+
+```bash
+systemctl --user enable --now hypr-download-sorter
+```
+
+---
+
+## ⚙ Configuration
+
+Configuration file:
+
+```text
+~/.config/hypr-download-sorter/config.toml
+```
+
+Example:
+
+```toml
+watch_dir = "~/Downloads"
+
+documents = "~/Documents/Downloads"
+images = "~/Pictures/Downloads"
+videos = "~/Videos/Downloads"
+music = "~/Music/Downloads"
+archives = "~/Archives/Downloads"
+executables = "~/Applications/Downloads"
+```
+
+---
+
+## 📂 Supported File Types
+
+| Category | Examples |
+|----------|----------|
+| Images | jpg png jpeg gif webp svg |
+| Videos | mp4 mkv mov avi webm |
+| Audio | mp3 flac wav opus ogg |
+| Documents | pdf docx xlsx pptx txt |
+| Archives | zip rar 7z tar gz |
+| Executables | AppImage deb rpm |
+
+Unknown files remain untouched.
+
+---
+
+## 🏗 Architecture
 
 ```
 Filesystem Events
@@ -102,7 +125,7 @@ Filesystem Events
     Classifier
         │
         ▼
-    RuleEngine
+    Rule Engine
         │
         ▼
       Mover
@@ -111,110 +134,24 @@ Filesystem Events
     Notifier
 ```
 
-Each file passes through a small processing pipeline before being moved.
+Each downloaded file flows through the pipeline before being moved.
 
-This guarantees correctness while keeping the architecture simple and maintainable.
-
----
-
-# Supported Categories
-
-| Category | Examples |
-|----------|----------|
-| Images | jpg, png, jpeg, gif, webp, svg |
-| Videos | mp4, mkv, avi, mov |
-| Audio | mp3, wav, flac, opus |
-| Documents | pdf, docx, xlsx, pptx, txt |
-| Archives | zip, rar, 7z, tar.gz |
-| Executables | AppImage, deb, rpm |
-
-Unknown files remain untouched.
+This guarantees that partially downloaded files are never processed.
 
 ---
 
-# Configuration
+## 💻 Compatibility
 
-Configuration is stored in:
-
-```
-config/default.toml
-```
-
-Example:
-
-```toml
-[paths]
-
-images = "~/Pictures/Downloads"
-videos = "~/Videos/Downloads"
-documents = "~/Documents/Downloads"
-audio = "~/Music/Downloads"
-archives = "~/Archives"
-executables = "~/Applications"
-unknown = "~/Downloads"
-```
-
-The daemon automatically expands `~` to your home directory.
-
----
-
-# Installation
-
-## Build from source
-
-```bash
-git clone https://github.com/YOUR_USERNAME/hypr-download-sorter.git
-
-cd hypr-download-sorter
-
-cargo build --release
-```
-
-The compiled binary will be located at:
-
-```text
-target/release/hypr-download-sorter
-```
-
----
-
-## Planned installation methods
-
-- install.sh
-- systemd user service
-- GitHub Release binaries
-- Arch Linux (AUR)
-- Nix package
-
----
-
-# Usage
-
-Start the daemon:
-
-```bash
-hypr-download-sorter
-```
-
-The daemon runs in the background and automatically processes files as they appear.
-
----
-
-# Compatibility
-
-## Desktop Environments
+### Desktop
 
 | Environment | Status |
-|------------|--------|
+|-------------|--------|
 | Hyprland | ✅ Fully Supported |
 | Sway | ✅ Supported |
-| River | ⚠ Planned |
-| GNOME (Wayland) | ⚠ Experimental |
-| KDE Plasma (Wayland) | ⚠ Experimental |
+| GNOME Wayland | ⚠ Untested |
+| KDE Plasma Wayland | ⚠ Untested |
 
----
-
-## Linux Distributions
+### Linux
 
 Tested on:
 
@@ -230,101 +167,63 @@ Expected to work on:
 
 ---
 
-## Dotfiles
+## 🎯 Philosophy
 
-Official integration is planned for:
+Unlike a small shell script, **hypr-download-sorter** is designed as a long-running desktop daemon.
 
-- JaKooLit Hyprland
-- ML4W
-- HyDE
-- end-4
-
----
-
-# Logging
-
-The daemon uses **tracing** for structured logging.
-
-Logs include:
-
-- Filesystem events
-- Debounce operations
-- Stability checks
-- File classification
-- Destination resolution
-- Successful moves
-- Errors
-
----
-
-# Design Philosophy
-
-hypr-download-sorter prioritizes:
+It focuses on:
 
 - Reliability
 - Correctness
 - Maintainability
-- Predictable behavior
+- Real-world desktop usage
 
-It intentionally favors real-world desktop experience over synthetic benchmark numbers.
+The goal is simple:
+
+> Download files.
+>
+> Forget about organizing them.
 
 ---
 
-# Roadmap
+## 🛣 Roadmap
 
-## v1.0
+### v1.0
 
 - ✅ Filesystem watcher
 - ✅ Debouncer
 - ✅ Stability checker
 - ✅ Rule engine
-- ✅ Classifier
 - ✅ Notifications
 - ✅ TOML configuration
-- ✅ Structured logging
+- ✅ Install script
+- ✅ systemd integration
 
----
+### Future
 
-## v1.1
-
-- install.sh
-- uninstall.sh
-- systemd user service
-- GitHub Release binaries
-
----
-
-## Future
-
-- Plugin system
-- Advanced rule engine
-- Duplicate detection
 - Custom rules
-- Dotfile integration
-- Package manager support
+- Duplicate detection
+- Plugin system
+- GitHub Release binaries
+- AUR package
+- Nix package
 
 ---
 
-# Contributing
+## 🤝 Contributing
 
-Contributions are welcome.
-
-Please read **CONTRIBUTING.md** before opening an Issue or Pull Request.
+Issues, bug reports and feature requests are always welcome.
 
 ---
 
-# License
+## 📜 License
 
-This project is licensed under the MIT License.
+Released under the MIT License.
 
-See **LICENSE** for details.
+See the LICENSE file for details.
 
 ---
 
-<p align="center">
-
-Built with ❤️ using Rust.
+Built with ❤️ in Rust.
 
 Designed for Linux desktop users.
-
-</p>
