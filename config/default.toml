@@ -1,18 +1,35 @@
-###############################################################################
+# ============================================================
 # hypr-download-sorter
 #
-# Default configuration
+# Default configuration.
 #
-# This file is only used during development.
-# After installation, copy it to:
-#
-# ~/.config/hypr-download-sorter/config.toml
-###############################################################################
+# Every category will be moved into its corresponding directory.
+# ============================================================
 
-# Directory to watch.
-#
-# "~" will automatically be expanded to your home directory.
-watch_dir = "~/Downloads"
+[directories]
 
-# Enable desktop notifications.
-notifications = true
+images = "~/Pictures"
+videos = "~/Videos"
+documents = "~/Documents"
+archives = "~/Archives"
+audio = "~/Music"
+executables = "~/Applications"
+others = "~/Downloads/Others"
+
+[watch]
+
+directory = "~/Downloads"
+
+debounce_ms = 500
+
+stability_check_ms = 300
+
+stability_checks = 3
+
+[notifications]
+
+enabled = true
+
+[logging]
+
+level = "info"

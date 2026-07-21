@@ -13,37 +13,46 @@ pub struct StabilityChecker {
 
 impl StabilityChecker {
     #[must_use]
-    pub fn new(interval: Duration, checks: u8) -> Self {
+    pub const fn new(interval: Duration, checks: u8) -> Self {
         Self { interval, checks }
     }
 
-    pub async fn wait_until_stable(&self, path: &Utf8Path) -> Result<bool> {
-        let mut previous_size = None;
+    async fn file_size(path: &Utf8Path) -> Result<u64> {
+        Ok(tokio::fs::metadata(path).await?.len())
+    }
 
-        for i in 0..self.checks {
-            let metadata = tokio::fs::metadata(path).await?;
+    fn is_stable(previous: Option<u64>, current: u64) -> bool {
+        matches!(previous, Some(size) if size == current)
+    }
 
-            let size = metadata.len();
+    pub async fn wait_until_stable(
+        &self,
+        path: &Utf8Path,
+    ) -> Result<bool> {
+        let mut previous = None;
 
-            tracing::info!(
-                "stability check {}/{}: {} ({} bytes)",
-                i + 1,
+        for attempt in 1..=self.checks {
+            let current = Self::file_size(path).await?;
+
+            tracing::debug!(
+                "stability {}/{}: {} ({} bytes)",
+                attempt,
                 self.checks,
                 path,
-                size
+                current
             );
 
-            if let Some(old_size) = previous_size
-                && old_size == size
-            {
-                tracing::info!("file stable");
+            if Self::is_stable(previous, current) {
+                tracing::debug!("file stable");
                 return Ok(true);
             }
 
-            previous_size = Some(size);
+            previous = Some(current);
 
             sleep(self.interval).await;
         }
+
+        tracing::debug!("file still changing");
 
         Ok(false)
     }
@@ -51,9 +60,6 @@ impl StabilityChecker {
 
 impl Default for StabilityChecker {
     fn default() -> Self {
-        Self {
-            interval: Duration::from_millis(500),
-            checks: 2,
-        }
+        Self::new(Duration::from_millis(500), 2)
     }
 }

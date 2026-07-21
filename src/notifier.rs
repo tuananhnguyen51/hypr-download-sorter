@@ -1,49 +1,63 @@
-use std::collections::HashMap;
+use camino::Utf8Path;
+use notify_rust::Notification;
 
-use zbus::Connection;
+use crate::{models::ManagedFile, Result};
 
-use zbus::zvariant::Value;
-
-use crate::Result;
-
-#[derive(Debug, Clone)]
-pub struct Notifier {
-    connection: Connection,
-}
+#[derive(Debug, Clone, Default)]
+pub struct Notifier;
 
 impl Notifier {
-    pub async fn new() -> Result<Self> {
-        let connection = Connection::session().await?;
-
-        Ok(Self { connection })
+    #[must_use]
+    pub const fn new() -> Self {
+        Self
     }
 
-    pub async fn notify(&self, summary: &str, body: &str) -> Result<()> {
-        let proxy = zbus::Proxy::new(
-            &self.connection,
-            "org.freedesktop.Notifications",
-            "/org/freedesktop/Notifications",
-            "org.freedesktop.Notifications",
+    pub async fn notify_success(
+        &self,
+        file: &ManagedFile,
+        destination: &Utf8Path,
+    ) -> Result<()> {
+        self.notify(
+            "Download sorted",
+            &format!(
+                "{} → {}",
+                Self::filename(file),
+                destination,
+            ),
         )
-        .await?;
+        .await
+    }
 
-        let hints: HashMap<&str, Value<'_>> = HashMap::new();
+    pub async fn notify_error(
+        &self,
+        message: &str,
+    ) -> Result<()> {
+        self.notify("Sorting failed", message).await
+    }
 
-        let _: u32 = proxy
-            .call(
-                "Notify",
-                &(
-                    "hypr-download-sorter",
-                    0u32,
-                    "",
-                    summary,
-                    body,
-                    Vec::<String>::new(),
-                    hints,
-                    5000i32,
-                ),
-            )
-            .await?;
+    pub async fn notify_skip(
+        &self,
+        file: &ManagedFile,
+    ) -> Result<()> {
+        self.notify("File skipped", Self::filename(file))
+            .await
+    }
+
+    fn filename(file: &ManagedFile) -> &str {
+        file.path.file_name().unwrap_or("unknown")
+    }
+
+    async fn notify(
+        &self,
+        title: &str,
+        body: &str,
+    ) -> Result<()> {
+        tracing::debug!("notification: {} - {}", title, body);
+
+        Notification::new()
+            .summary(title)
+            .body(body)
+            .show()?;
 
         Ok(())
     }

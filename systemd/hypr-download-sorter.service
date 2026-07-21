@@ -1,0 +1,14 @@
+[Unit]
+Description=Automatically organize downloaded files
+Documentation=https://github.com/<your-username>/hypr-download-sorter
+After=graphical-session.target
+Wants=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/hypr-download-sorter
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

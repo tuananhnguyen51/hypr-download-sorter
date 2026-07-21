@@ -15,6 +15,7 @@ camino = { version = "1.2.4", features = ["serde1"] }
 directories = "6.0"
 
 notify = "8.2"
+notify-rust = "4.11"
 
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.9"

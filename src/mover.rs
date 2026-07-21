@@ -1,11 +1,11 @@
+use std::{fs, io};
+
 use camino::{Utf8Path, Utf8PathBuf};
 
 use crate::{AppError, Result};
 
 #[derive(Debug, Clone)]
 pub struct Mover;
-
-const MAX_DUPLICATES: usize = 100_000;
 
 impl Default for Mover {
     fn default() -> Self {
@@ -19,9 +19,33 @@ impl Mover {
         Self
     }
 
+    pub fn move_file(&self, source: &Utf8Path, destination: &Utf8Path) -> Result<()> {
+        let destination = Self::unique_destination(destination)?;
+        Self::ensure_parent(&destination)?;
+
+        match fs::rename(source, &destination) {
+            Ok(_) => Ok(()),
+
+            Err(err) if Self::is_cross_device(&err) => Self::copy_and_remove(source, &destination),
+
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    fn copy_and_remove(source: &Utf8Path, destination: &Utf8Path) -> Result<()> {
+        fs::copy(source, destination)?;
+
+        if let Err(err) = fs::remove_file(source) {
+            let _ = fs::remove_file(destination);
+            return Err(err.into());
+        }
+
+        Ok(())
+    }
+
     fn ensure_parent(destination: &Utf8Path) -> Result<()> {
         if let Some(parent) = destination.parent() {
-            std::fs::create_dir_all(parent)?;
+            fs::create_dir_all(parent)?;
         }
 
         Ok(())
@@ -33,16 +57,16 @@ impl Mover {
         }
 
         let stem = path.file_stem().unwrap_or("file");
-        let extension = path.extension();
+        let ext = path.extension();
 
         let Some(parent) = path.parent() else {
-            return Err(AppError::message("destination has no parent directory"));
+            return Ok(path.to_path_buf());
         };
 
-        for index in 1..=MAX_DUPLICATES {
-            let filename = match extension {
-                Some(ext) => format!("{stem} ({index}).{ext}"),
-                None => format!("{stem} ({index})"),
+        for i in 1..=100_000 {
+            let filename = match ext {
+                Some(ext) => format!("{stem} ({i}).{ext}"),
+                None => format!("{stem} ({i})"),
             };
 
             let candidate = parent.join(filename);
@@ -53,30 +77,11 @@ impl Mover {
         }
 
         Err(AppError::message(
-            "could not find an available destination filename",
+            "could not determine unique destination filename",
         ))
     }
 
-    pub fn move_file(&self, source: &Utf8Path, destination: &Utf8Path) -> Result<()> {
-        let destination = Self::unique_destination(destination)?;
-
-        Self::ensure_parent(&destination)?;
-
-        tracing::info!("Moving {} -> {}", source, destination);
-
-        match std::fs::rename(source, &destination) {
-            Ok(()) => Ok(()),
-
-            Err(err) if err.raw_os_error() == Some(libc::EXDEV) => {
-                tracing::debug!("Cross-device move detected, falling back to copy");
-
-                std::fs::copy(source, &destination)?;
-                std::fs::remove_file(source)?;
-
-                Ok(())
-            }
-
-            Err(err) => Err(err.into()),
-        }
+    fn is_cross_device(err: &io::Error) -> bool {
+        matches!(err.raw_os_error(), Some(libc::EXDEV))
     }
 }

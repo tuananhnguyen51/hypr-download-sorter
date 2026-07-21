@@ -1,6 +1,15 @@
-use camino::Utf8PathBuf;
+use std::time::Instant;
 
-use crate::{Result, classifier::Classifier, mover::Mover, notifier::Notifier, rules::RuleEngine};
+use camino::{Utf8Path, Utf8PathBuf};
+
+use crate::{
+    models::ManagedFile,
+    Result,
+    classifier::Classifier,
+    mover::Mover,
+    notifier::Notifier,
+    rules::RuleEngine,
+};
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -25,28 +34,62 @@ impl Pipeline {
         }
     }
 
+    fn move_file(
+        &self,
+        file: &ManagedFile,
+        destination: &Utf8Path,
+    ) -> Result<()> {
+        self.mover
+            .move_file(file.path.as_path(), destination)
+    }
+
+    async fn notify(
+        &self,
+        file: &ManagedFile,
+        destination: &Utf8Path,
+    ) -> Result<()> {
+        self.notifier
+            .notify_success(file, destination)
+            .await
+    }
+
+    async fn move_and_notify(
+        &self,
+        file: &ManagedFile,
+        destination: &Utf8Path,
+    ) -> Result<()> {
+        self.move_file(file, destination)?;
+        self.notify(file, destination).await
+    }
+
     pub async fn process(&self, path: Utf8PathBuf) -> Result<()> {
         tracing::debug!("Pipeline: {}", path);
 
-        tracing::debug!("ENTER PIPELINE");
+        let start = Instant::now();
 
         if !path.exists() {
-            tracing::debug!("Skipping vanished file: {}", path);
             return Ok(());
         }
 
         let file = self.classifier.classify(path)?;
-        tracing::debug!("mime={:?}, category={:?}", file.mime, file.category);
+        let destination = self.rules.resolve_destination(&file)?;
 
-        let destination = self.rules.resolve(&file)?;
-        tracing::debug!("Moving {} -> {}", file.path, destination);
+        if let Err(err) = self
+            .move_and_notify(&file, destination.as_path())
+            .await
+        {
+            self.notifier
+                .notify_error(&err.to_string())
+                .await?;
 
-        self.mover.move_file(&file.path, &destination)?;
+            return Err(err);
+        }
 
-        self.notifier
-            .notify("File sorted", &format!("Moved to {}", destination))
-            .await?;
+        tracing::info!("Moved {} -> {}", file.path, destination);
+        tracing::debug!("Finished in {:?}", start.elapsed());
 
         Ok(())
     }
+
+
 }

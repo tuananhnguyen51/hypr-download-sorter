@@ -1,11 +1,10 @@
 use std::fs;
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use serde::Deserialize;
 
 use crate::{
     error::{AppError, Result},
-    models::FileCategory,
     paths::{Paths, ensure_directory},
 };
 
@@ -47,39 +46,36 @@ impl Config {
     ///
     /// 1. ~/.config/hypr-download-sorter/config.toml
     /// 2. config/default.toml (development)
-    pub fn destination(&self, category: FileCategory) -> Result<Utf8PathBuf> {
-        let paths = Paths::new()?;
-
-        Ok(match category {
-            FileCategory::Image => paths.expand(&self.images),
-            FileCategory::Video => paths.expand(&self.videos),
-            FileCategory::Audio => paths.expand(&self.music),
-            FileCategory::Document => paths.expand(&self.documents),
-            FileCategory::Archive => paths.expand(&self.archives),
-            FileCategory::Executable => paths.expand(&self.executables),
-            FileCategory::Unknown => paths.expand(&self.watch_dir),
-        })
-    }
-
     pub fn load() -> Result<Self> {
         let paths = Paths::new()?;
 
         let config_dir = paths.config_dir();
         ensure_directory(config_dir.as_path())?;
 
-        let user_config = config_dir.join("config.toml");
+        let user_config = config_dir.join("default.toml");
 
         if user_config.exists() {
             return Self::load_file(user_config);
         }
 
-        let default_config = Utf8PathBuf::from("config/default.toml");
-
-        if default_config.exists() {
-            return Self::load_file(default_config);
+        for path in [
+            config_dir.join("default.toml"),
+            Utf8PathBuf::from("config/default.toml"),
+        ] {
+            if path.exists() {
+                return Self::load_file(path);
+            }
         }
 
+
         Err(AppError::config("No configuration file could be found."))
+    }
+
+    fn validate(&self) -> Result<()> {
+        let watch = self.watch_directory()?;
+        Self::validate_directory(&watch)?;
+
+        Ok(())
     }
 
     fn load_file(path: Utf8PathBuf) -> Result<Self> {
@@ -92,17 +88,13 @@ impl Config {
         Ok(config)
     }
 
-    fn validate(&self) -> Result<()> {
-        let paths = Paths::new()?;
-
-        let watch_dir = paths.expand(&self.watch_dir);
-
-        if !watch_dir.exists() {
-            return Err(AppError::config("watch_dir does not exist."));
+    fn validate_directory(path: &Utf8Path) -> Result<()> {
+        if !path.exists() {
+            return Err(AppError::config(format!("{path} does not exist")));
         }
 
-        if !watch_dir.is_dir() {
-            return Err(AppError::config("watch_dir is not a directory."));
+        if !path.is_dir() {
+            return Err(AppError::config(format!("{path} is not directory")));
         }
 
         Ok(())

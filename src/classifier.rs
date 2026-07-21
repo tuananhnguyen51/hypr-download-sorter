@@ -14,34 +14,61 @@ impl Classifier {
         Self
     }
 
-    pub fn classify(&self, path: Utf8PathBuf) -> Result<ManagedFile> {
-        if path.is_dir() {
-            return Ok(ManagedFile {
-                path,
-                category: FileCategory::Unknown,
-                mime: None,
-            });
+    fn detect_mime(path: &Utf8Path) -> Result<Option<String>> {
+        Ok(
+            infer::get_from_path(path)?
+                .map(|kind| kind.mime_type().to_owned()),
+        )
+    }
+
+    fn resolve_category(
+        path: &Utf8Path,
+        mime: Option<&str>,
+    ) -> FileCategory {
+        let category = classify_extension(path);
+
+        if category != FileCategory::Unknown {
+            return category;
         }
 
-        let mime = infer::get_from_path(&path)?.map(|kind| kind.mime_type().to_owned());
+        mime.map(classify_mime)
+            .unwrap_or(FileCategory::Unknown)
+    }
 
-        let extension_category = classify_extension(&path);
-
-        let category = if extension_category != FileCategory::Unknown {
-            extension_category
-        } else {
-            mime.as_deref()
-                .map(classify_mime)
-                .unwrap_or(FileCategory::Unknown)
-        };
-
-        let file = ManagedFile {
+    fn build(
+        path: Utf8PathBuf,
+        category: FileCategory,
+        mime: Option<String>,
+    ) -> ManagedFile {
+        ManagedFile {
             path,
             category,
             mime,
-        };
+        }
+    }
 
-        tracing::debug!("mime={:?}, category={:?}", file.mime, file.category);
+    pub fn classify(&self, path: Utf8PathBuf) -> Result<ManagedFile> {
+        if path.is_dir() {
+            return Ok(Self::build(
+                path,
+                FileCategory::Unknown,
+                None,
+            ));
+        }
+
+        let mime = Self::detect_mime(&path)?;
+        let category = Self::resolve_category(
+            &path,
+            mime.as_deref(),
+        );
+
+        let file = Self::build(path, category, mime);
+
+        tracing::debug!(
+            "mime={:?}, category={:?}",
+            file.mime,
+            file.category
+        );
 
         Ok(file)
     }

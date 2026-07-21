@@ -21,6 +21,9 @@ pub enum AppError {
     #[error("Failed to parse configuration: {0}")]
     Toml(#[from] toml::de::Error),
 
+    #[error(transparent)]
+    NotifyRust(#[from] notify_rust::error::Error),
+
     /// Configuration is invalid.
     #[error("Configuration error: {0}")]
     Config(String),

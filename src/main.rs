@@ -29,7 +29,7 @@ async fn run() -> Result<()> {
     let classifier = Classifier::new();
     let rules = RuleEngine::new(config.clone());
     let mover = Mover::new();
-    let notifier = Notifier::new().await?;
+    let notifier = Notifier::new();
 
     let pipeline = Pipeline::new(classifier, rules, mover, notifier);
 
