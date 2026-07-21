@@ -74,7 +74,7 @@ systemctl --user enable --now hypr-download-sorter
 Configuration file:
 
 ```text
-~/.config/hypr-download-sorter/config.toml
+~/.config/hypr-download-sorter/config/default.toml
 ```
 
 Example:
