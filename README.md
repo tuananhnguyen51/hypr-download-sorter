@@ -50,7 +50,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 Clone and install:
 
 ```bash
-git clone https://github.com/<USERNAME>/hypr-download-sorter.git \
+git clone https://github.com/tuananhnguyen51/hypr-download-sorter.git \
 && cd hypr-download-sorter \
 && bash scripts/install.sh
 ```
